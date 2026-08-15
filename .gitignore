@@ -1,0 +1,7 @@
+__pycache__/
+.env/
+dataset/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
