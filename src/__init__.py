@@ -1,4 +1,4 @@
-from .datasets import Bird10_Dataset
+from .datasets import BirdImageDataset
 from .preprocessing import (
     AudioPreprocessing,
     ImagePreprocessing,

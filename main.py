@@ -2,7 +2,7 @@
 from src import (
     AudioPreprocessing,
     ImagePreprocessing,
-    Bird10_Dataset,
+    BirdImageDataset,
 )
 
 

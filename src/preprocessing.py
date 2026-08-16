@@ -104,7 +104,7 @@ class AudioPreprocessing:
     def main(self) -> None:
         audio_pattern = re.compile(r'\.(wav|mp3)$', re.IGNORECASE)
         
-        with open(self.root / "audio-annotation.csv", "a", newline="", encoding="utf-8") as f:
+        with open(self.root / "audio-annotations.csv", "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(["file", "label", "dataset"])
 
@@ -151,7 +151,7 @@ class ImagePreprocessing:
     def main(self) -> None:
         image_pattern = re.compile(r'\.(jpg|png)$', re.IGNORECASE)
                 
-        with open(self.root / "image-annotation.csv", "a", newline="", encoding="utf-8") as f:
+        with open(self.root / "image-annotations.csv", "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(["file", "label", "dataset"])
 
