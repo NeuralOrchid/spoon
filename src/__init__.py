@@ -1,8 +1,5 @@
 from .datasets import BirdImageDataset
-from .preprocessing import (
-    AudioPreprocessing,
-    ImagePreprocessing,
-)
+from .train import ImageTrainer
 
 from .models.mobilevit import (
     MobileViT_S,
