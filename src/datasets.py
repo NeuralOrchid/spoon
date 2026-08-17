@@ -10,8 +10,9 @@ class BirdImageDataset(Dataset):
         self,
         img_dir: Path,
         ann_file: str | Path,
+        transformation,
         dst: Optional[Literal['Bird-MY10', 'Bird-SEA10']] = None,
-        device: Optional[str]=...,
+        device: Optional[str]='cpu',
     ):
         # Image folder
         self.img_dir = img_dir
@@ -28,14 +29,15 @@ class BirdImageDataset(Dataset):
 
         # Device cuda/cpu
         self.device = device
-
-
-    def __getitem__(self, idx: int):
-        pass
+        self.transformation = transformation.to(self.device)
 
 
     def __len__(self) -> int:
         return len(self.ann)
+
+
+    def __getitem__(self, idx: int):
+        pass
 
 
 
