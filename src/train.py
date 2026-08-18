@@ -114,7 +114,7 @@ class ImageTrainer:
     def train(self):
         loop = trange(self.args.epochs +1)
         loop_postfix = {'loss': 0.0, 'f1 score': 0.0}
-        
+
         for epoch in loop:
             loss = self._train_epoch()
             loop_postfix['loss'] = loss
@@ -127,3 +127,5 @@ class ImageTrainer:
 
         self._save_model_weights()
             
+# https://drive.google.com/file/d/18KVIqS7uK7W59tntWVx-rVinwLM4APLs/view?usp=sharing
+# https://github.com/NeuralOrchid/spoon.git
