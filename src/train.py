@@ -114,6 +114,7 @@ class ImageTrainer:
     def train(self):
         loop = trange(self.args.epochs +1)
         loop_postfix = {'loss': 0.0, 'f1 score': 0.0}
+        
         for epoch in loop:
             loss = self._train_epoch()
             loop_postfix['loss'] = loss

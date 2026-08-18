@@ -14,7 +14,7 @@ DEFAULTS = Namespace(
     audio_dir       = Path('dataset/audio'),
     img_ann         = Path('dataset/image-annotations.csv'),
     audio_ann       = Path('dataset/audio-annotations.csv'),
-    mobilevitxxs_checkpoint ='MobileViT_XXS.pth'
+    mobilevitxxs_checkpoint = 'drive/MyDrive/MobileViT_XXS.pth'
 )
 
 
