@@ -1,4 +1,4 @@
-from .datasets import BirdImageDataset
+from .image_dataset import BirdImageDataset
 
 from .models.mobilevit import (
     MobileViT_S,

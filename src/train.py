@@ -121,11 +121,9 @@ class ImageTrainer:
 
             if epoch % 5 == 0:
                 f1_score = self._val_epoch()
-                loop_postfix['accuracy'] = f1_score
+                loop_postfix['f1 score'] = f1_score
 
             loop.set_postfix(loop_postfix)
 
         self._save_model_weights()
             
-# https://drive.google.com/file/d/18KVIqS7uK7W59tntWVx-rVinwLM4APLs/view?usp=sharing
-# https://github.com/NeuralOrchid/spoon.git
