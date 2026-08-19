@@ -212,11 +212,19 @@ class MobileVitBlock(nn.Module):
         return result
 
 class MobileViT(nn.Module):
-    def __init__(self, img_size, features_list, d_list, transformer_depth, expansion, num_classes = 1000):
+    def __init__(
+            self, 
+            img_size: int | tuple[int, int], 
+            features_list:list[int],
+            d_list:list[int],
+            transformer_depth:list[int],
+            expansion:int,
+            num_classes:int = 10,
+            in_channels:int = 3
+    ):
         super(MobileViT, self).__init__()
-
         self.stem = nn.Sequential(
-            nn.Conv2d(in_channels = 3, out_channels = features_list[0], kernel_size = 3, stride = 2, padding = 1),
+            nn.Conv2d(in_channels = in_channels, out_channels = features_list[0], kernel_size = 3, stride = 2, padding = 1),
             InvertedResidual(in_channels = features_list[0], out_channels = features_list[1], stride = 1, expand_ratio = expansion),
         )
 
@@ -245,7 +253,12 @@ class MobileViT(nn.Module):
             nn.Conv2d(in_channels = features_list[9], out_channels = features_list[10], kernel_size = 1, stride = 1, padding = 0)
         )
 
-        self.avgpool = nn.AvgPool2d(kernel_size = img_size // 32)
+        if isinstance(img_size, int):
+            kernel = img_size // 32
+        else:
+            kernel = tuple(i//32 for i in img_size)
+
+        self.avgpool = nn.AvgPool2d(kernel_size = kernel)
         self.fc = nn.Linear(features_list[10], num_classes)
 
 
@@ -264,33 +277,37 @@ class MobileViT(nn.Module):
         return x
 
 
-def MobileViT_XXS(img_size = 256, num_classes = 16):
+def MobileViT_XXS(
+        img_size: int | tuple[int, int],
+        num_classes:int = 10,
+        in_channels:int = 3,
+):
     cfg_xxs = model_cfg["xxs"]
-    model_xxs = MobileViT(img_size, cfg_xxs["features"], cfg_xxs["d"], cfg_xxs["layers"], cfg_xxs["expansion_ratio"], num_classes)
+    model_xxs = MobileViT(
+        img_size,
+        cfg_xxs["features"],
+        cfg_xxs["d"],
+        cfg_xxs["layers"],
+        cfg_xxs["expansion_ratio"],
+        num_classes,
+        in_channels,
+    )
     return model_xxs
-
-def MobileViT_XS(img_size = 256, num_classes = 16):
-    cfg_xs = model_cfg["xs"]
-    model_xs = MobileViT(img_size, cfg_xs["features"], cfg_xs["d"], cfg_xs["layers"], cfg_xs["expansion_ratio"], num_classes)
-    return model_xs
-
-def MobileViT_S(img_size = 256, num_classes = 16):
-    cfg_s = model_cfg["s"]
-    model_s = MobileViT(img_size, cfg_s["features"], cfg_s["d"], cfg_s["layers"], cfg_s["expansion_ratio"], num_classes)
-    return model_s
 
 
 if __name__ == "__main__":
-    img = torch.randn(1, 3, 256, 256)
+    image = torch.randn(1, 3, 256, 256)
+    audio = torch.randn(1, 1, 128, 384)
 
-    model_xxs = MobileViT_XXS(img_size=256, num_classes=10)
+    image_model_xxs = MobileViT_XXS(256, 10)
+    audio_model_xxs = MobileViT_XXS((128, 384), 10, 1)
 
-    print(model_xxs)
-
-    # XXS: 1.3M 、 XS: 2.3M 、 S: 5.6M
-    print("XXS params: ", sum(p.numel() for p in model_xxs.parameters()))
+    print("Image XXS params: ", sum(p.numel() for p in image_model_xxs.parameters()))
+    print("Audio XXS params: ", sum(p.numel() for p in audio_model_xxs.parameters()))
 
     with torch.no_grad():
-        pred = model_xxs(img)
+        image_pred = image_model_xxs(image)
+        audio_pred = audio_model_xxs(audio)
 
-    print(img.shape, "=>", pred.shape)
+    print(image.shape, "=>", image_pred.shape)
+    print(audio.shape, "=>", audio_pred.shape)

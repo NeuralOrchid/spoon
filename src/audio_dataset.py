@@ -16,12 +16,12 @@ class BirdAudioDataset(Dataset):
         audio_dir: Path,
         ann_file: str | Path,
         sample_rate: int,
-        audio_length: int,
+        audio_length: float,
         dst: Optional[Literal['Bird-MY10', 'Bird-SEA10']] = None,
     ):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.sample_rate = sample_rate
-        self.num_samples = audio_length * sample_rate
+        self.num_samples = int(audio_length * sample_rate)
         self.audio_dir = audio_dir
         self.ann = pd.read_csv(ann_file)
         self.ann["label"] = self.ann["label"].astype("category").cat.codes
@@ -162,7 +162,7 @@ if __name__ == "__main__":
         audio_dir=Path('dataset/audio'),
         ann_file=Path('dataset/audio-annotations.csv'),
         sample_rate=32_000,
-        audio_length=6,
+        audio_length=6.128,
     )
 
     img, _ = mydataset[0]
