@@ -253,7 +253,7 @@ class AudioTrainer:
             loss = self._train_epoch()
             loop_postfix['loss'] = loss
 
-            if epoch % 1 == 0:
+            if epoch % 5 == 0:
                 f1_score = self._val_epoch()
                 loop_postfix['f1 score'] = f1_score
 
