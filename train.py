@@ -27,6 +27,9 @@ class ImageTrainer:
             num_classes = args.num_classes
         ).to(self.device)
 
+        if args.image_mobilevitxxs_checkpoint.exists():
+            self._load_model_weights()
+
         # Loss function & Optimizer
         self.f1_metric = MulticlassF1Score(args.num_classes).to(self.device)
         self.criterion = nn.CrossEntropyLoss().to(self.device)
@@ -263,3 +266,100 @@ class AudioTrainer:
 
     def __call__(self, *args, **kwds):
         self.train()
+
+
+
+class UnpairedTrainer:
+    def __init__(self, args: Namespace):
+        self.args = args
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        self.audio_model = MobileViT_XXS(
+            img_size = (128, 384),
+            num_classes = args.num_classes,
+            in_channels = 1,
+        ).to(self.device)
+
+        self.image_model = MobileViT_XXS(
+            img_size = args.image_size,
+            num_classes = args.num_classes
+        ).to(self.device)
+
+        self.fusion_model = nn.Module()
+
+        self._load_model_weights()
+
+        # TODO: 
+        #   - Loss function 
+        #   - Criterion
+        #   - Metric (F1 score)
+        #   - Optimizer
+        #   - Scheduler
+        #   - Dataset
+        #   - Dataloader
+        #   - Transform
+        
+
+    def _save_model_weights(self) -> None:
+        torch.save(
+            self.fusion_model.state_dict(),
+            self.args.fusion_model_checkpoint,
+        )
+    
+    def _load_model_weights(self) -> None:
+        if self.args.audio_mobilevitxxs_checkpoint.exists():
+            state = torch.load(
+                self.args.audio_mobilevitxxs_checkpoint, 
+                map_location=self.device,
+            )
+            self.audio_model.load_state_dict(state)
+
+        if self.args.image_mobilevitxxs_checkpoint.exists():
+            state = torch.load(
+                self.args.image_mobilevitxxs_checkpoint, 
+                map_location=self.device,
+            )
+            self.image_model.load_state_dict(state)
+
+        if self.args.fusion_model_checkpoint.exists():
+            state = torch.load(
+                self.args.fusion_model_checkpoint, 
+                map_location=self.device,
+            )
+            self.fusion_model.load_state_dict(state)
+
+    def _train_epoch(self) -> float:
+        pass #TODO: ...
+
+
+    def _val_epoch(self) -> float:
+        pass #TODO: ...
+
+
+    def train(self):
+        self.audio_model.eval()
+        self.image_model.eval()
+
+        loop = trange(self.args.epochs +1)
+        loop_postfix = {
+            'loss': 0.0,
+            'f1 score': 0.0,
+        }
+
+        for epoch in loop:
+            loss = self._train_epoch()
+            loop_postfix['loss'] = loss
+
+            if epoch % 5 == 0:
+                f1_score = self._val_epoch()
+                loop_postfix['f1 score'] = f1_score
+
+            loop.set_postfix(loop_postfix)
+        self._save_model_weights()
+
+
+    def __call__(self):
+        # === Main ===
+        self.train()
+
+# NOTE: Above training module is only for experimenting simple fusion networks

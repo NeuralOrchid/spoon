@@ -1,6 +1,11 @@
 from .image_dataset import BirdImageDataset
 from .audio_dataset import BirdAudioDataset
+from .unpaired_dataset import UnpairedDataset
 
 from .mobilevit import MobileViT_XXS
 
-from .train import ImageTrainer, AudioTrainer
+from .train import (
+    ImageTrainer,
+    AudioTrainer,
+    UnpairedTrainer
+)
