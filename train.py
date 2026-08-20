@@ -77,7 +77,7 @@ class ImageTrainer:
             targets = targets.to(self.device)
 
             # Forward pass
-            preds = self.model(inputs)
+            preds, _ = self.model(inputs)
             loss = self.criterion(preds, targets)
 
             losses.append(loss.item())
@@ -103,7 +103,7 @@ class ImageTrainer:
             targets = targets.to(self.device)
 
             with torch.no_grad():
-                preds = self.model(inputs).argmax(dim=1)
+                preds, _ = self.model(inputs).argmax(dim=1)
                 all_preds.append(preds)
                 all_targets.append(targets)
 
@@ -205,7 +205,7 @@ class AudioTrainer:
             inputs = self.transform(inputs, train=True)
 
             # Forward pass
-            preds = self.model(inputs)
+            preds, _ = self.model(inputs)
             loss = self.criterion(preds, targets)
 
             losses.append(loss.item())
@@ -233,7 +233,7 @@ class AudioTrainer:
             inputs = self.transform(inputs, train=False)
 
             with torch.no_grad():
-                preds = self.model(inputs).argmax(dim=1)
+                preds, _ = self.model(inputs).argmax(dim=1)
                 all_preds.append(preds)
                 all_targets.append(targets)
 

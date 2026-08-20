@@ -273,8 +273,8 @@ class MobileViT(nn.Module):
         # Head
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
-        x = self.fc(x)
-        return x
+        logits = self.fc(x)
+        return logits, x
 
 
 def MobileViT_XXS(
@@ -306,8 +306,8 @@ if __name__ == "__main__":
     print("Audio XXS params: ", sum(p.numel() for p in audio_model_xxs.parameters()))
 
     with torch.no_grad():
-        image_pred = image_model_xxs(image)
-        audio_pred = audio_model_xxs(audio)
+        image_pred, _ = image_model_xxs(image)
+        audio_pred, _ = audio_model_xxs(audio)
 
     print(image.shape, "=>", image_pred.shape)
     print(audio.shape, "=>", audio_pred.shape)
