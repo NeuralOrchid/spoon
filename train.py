@@ -321,7 +321,7 @@ class UnpairedTrainer:
         )
 
         ## Define Dataset: Image Modal Dataset
-        image_dataset = BirdImageDataset(args.img_dir, args.img_ann, None)
+        image_dataset = BirdImageDataset(args.img_dir, args.img_ann, True)
 
         ## Define Dataset: Audio Modal Dataset
         audio_dataset = BirdAudioDataset(
@@ -340,7 +340,7 @@ class UnpairedTrainer:
 
         ## Load Transform Functions
         self.audio_transform = audio_dataset.transform
-        self.image_transform = image_dataset.transform
+        # self.image_transform = image_dataset.transform
 
         ## Define DataLoader
         self.data_loader = DataLoader(
@@ -386,10 +386,10 @@ class UnpairedTrainer:
         losses = list()
 
         for images, audios, labels in self.data_loader:
-            images = self.image_transform(images, train=False)
+            # images = self.image_transform(images, train=False)
             images = images.to(self.device)
             audios = audios.to(self.device)
-            audios = self.audio_transform(audios, train=False)
+            audios = self.audio_transform(audios, train=True)
             labels = labels.to(self.device)
 
             _, image_features = self.image_model(images)
@@ -425,7 +425,7 @@ class UnpairedTrainer:
         self.fusion_model.eval()
 
         for images, audios, labels in self.data_loader:
-            images = self.image_transform(images, train=False)
+            # images = self.image_transform(images, train=False)
             images = images.to(self.device)
             audios = audios.to(self.device)
             audios = self.audio_transform(audios, train=False)
