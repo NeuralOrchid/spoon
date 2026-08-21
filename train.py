@@ -289,15 +289,43 @@ class UnpairedTrainer:
 
         self._load_model_weights()
 
-        # TODO: 
-        #   - Loss function 
-        #   - Criterion
-        #   - Metric (F1 score)
-        #   - Optimizer
-        #   - Scheduler
-        #   - Dataset
-        #   - Dataloader
-        #   - Transform
+        self.f1_metric = MulticlassF1Score(args.num_classes).to(self.device)
+        self.criterion = nn.CrossEntropyLoss().to(self.device)
+        self.optimizer = torch.optim.SGD(
+            self.fusion_model.parameters(),
+            args.lr,
+            momentum = 0.9,
+            weight_decay = args.weight_decay
+        )
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            self.optimizer, args.epochs
+        )
+
+        image_dataset = BirdImageDataset(args.img_dir, args.img_ann, None)
+        self.image_transform = image_dataset.transform
+
+        self.train_loader = DataLoader(
+            image_dataset,
+            batch_size = args.batch_size, shuffle = True,
+            num_workers = 1,  pin_memory = True
+        )
+
+        audio_dataset = BirdAudioDataset(
+            audio_dir=args.audio_dir,
+            ann_file=args.audio_ann,
+            sample_rate=args.sample_rate,
+            audio_length=args.audio_length,
+        )
+
+        self.audio_transform = audio_dataset.transform
+
+        self.data_loader = DataLoader(
+            dataset=audio_dataset,
+            batch_size=args.batch_size,
+            shuffle=True,
+            num_workers=1,
+            pin_memory=True,
+        )
         
 
     def _save_model_weights(self) -> None:

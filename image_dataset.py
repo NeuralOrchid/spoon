@@ -12,9 +12,11 @@ class BirdImageDataset(Dataset):
         self,
         img_dir: Path,
         ann_file: str | Path,
-        train: bool = True,
+        train: bool = None,
         dst: Optional[Literal['Bird-MY10', 'Bird-SEA10']] = None,
     ):
+        self.train = train
+        
         # Image folder
         self.img_dir = img_dir
 
@@ -27,38 +29,39 @@ class BirdImageDataset(Dataset):
             self.ann = self.ann.reset_index(drop=True)
 
         self.ann = self.ann.drop(columns="dataset")
+        
+        self.ttransform = T.Compose([
+            T.Resize(384),
+            T.RandomResizedCrop(256, (0.8, 1.0), (0.95, 1.05)),
+            T.RandomHorizontalFlip(),
 
+            T.ColorJitter(
+                brightness=0.4,
+                contrast=0.4,
+                saturation=0.2,
+                hue=0.1
+            ),
+
+            T.ToTensor(),
+
+            T.Normalize(
+                mean=(0.485, 0.456, 0.406),
+                std=(0.229, 0.224, 0.225)
+            ),
+        ])
+        self.vtransform = T.Compose([
+            T.Resize(256),
+            T.ToTensor(),
+            T.Normalize(
+                mean=(0.485, 0.456, 0.406),
+                std=(0.229, 0.224, 0.225)
+            ),
+        ])
+
+    def transform(self, x, train:bool=True):
         if train:
-            self.transform = T.Compose([
-                T.Resize(384),
-                T.RandomResizedCrop(256, (0.8, 1.0), (0.95, 1.05)),
-                T.RandomHorizontalFlip(),
-
-                T.ColorJitter(
-                    brightness=0.4,
-                    contrast=0.4,
-                    saturation=0.2,
-                    hue=0.1
-                ),
-
-                T.ToTensor(),
-
-                T.Normalize(
-                    mean=(0.485, 0.456, 0.406),
-                    std=(0.229, 0.224, 0.225)
-                ),
-            ])
-            
-        else:
-            self.transform = T.Compose([
-                T.Resize(256),
-                T.ToTensor(),
-                T.Normalize(
-                    mean=(0.485, 0.456, 0.406),
-                    std=(0.229, 0.224, 0.225)
-                ),
-            ])
-
+            return self.ttransform(x)
+        return self.vtransform(x)
 
     def __len__(self) -> int:
         return len(self.ann)
@@ -87,7 +90,8 @@ class BirdImageDataset(Dataset):
         image = Image.open(image_path).convert("RGB")
         image = self._pad2square(image)
 
-        image = self.transform(image)
+        if self.train is not None:
+            image = self.transform(image, self.train)
 
         return image, label
     
