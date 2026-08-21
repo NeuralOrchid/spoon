@@ -302,7 +302,7 @@ class UnpairedTrainer:
             nn.Dropout(0.2),
 
             nn.Linear(128, args.num_classes)
-        )
+        ).to(self.device)
 
         ## Load Model Weights
         self._load_model_weights()
