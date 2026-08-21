@@ -74,7 +74,7 @@ class UnpairedDataset(Dataset):
 
         assert image_label == audio_label == label
 
-        return image, audio, label
+        return image, audio, image_label
 
 
 
