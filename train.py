@@ -291,7 +291,18 @@ class UnpairedTrainer:
         ).to(self.device)
 
         ## Define Models: Fusion Model | TODO: Define the model
-        self.fusion_model = nn.Module()
+        self.fusion_model = nn.Sequential(
+            nn.LayerNorm(640),
+            nn.Linear(640, 256),
+            nn.GELU(),
+            nn.Dropout(0.2),
+
+            nn.Linear(256, 128),
+            nn.GELU(),
+            nn.Dropout(0.2),
+
+            nn.Linear(128, args.num_classes)
+        )
 
         ## Load Model Weights
         self._load_model_weights()
