@@ -306,8 +306,11 @@ if __name__ == "__main__":
     print("Audio XXS params: ", sum(p.numel() for p in audio_model_xxs.parameters()))
 
     with torch.no_grad():
-        image_pred, _ = image_model_xxs(image)
-        audio_pred, _ = audio_model_xxs(audio)
+        image_pred, image_modality = image_model_xxs(image)
+        audio_pred, audio_modality = audio_model_xxs(audio)
 
     print(image.shape, "=>", image_pred.shape)
     print(audio.shape, "=>", audio_pred.shape)
+
+    print("Image latent:", image_modality.shape)
+    print("Audio latent:", audio_modality.shape)
