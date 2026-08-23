@@ -78,17 +78,17 @@ class AudioPreprocessing:
                 score = self._calculate_window_score(segment, orig_sr)
         
                 candidates.append({
-                    "start_sample": start,
-                    "end_sample": end,
-                    "start_time": start / orig_sr,
-                    "end_time": end / orig_sr,
-                    "score": score,
+                    "початковий_семпл": start,
+                    "кінцевий_семпл": end,
+                    "початковий_час": start / orig_sr,
+                    "кінцевий_час": end / orig_sr,
+                    "оцінка": score,
                 })
 
-            best = max(candidates, key=lambda x: x["score"])
+            best = max(candidates, key=lambda x: x["оцінка"])
             
-            start = best["start_sample"]
-            end = best["end_sample"]
+            start = best["початковий_семпл"]
+            end = best["кінцевий_семпл"]
         
             y = y[start:end]
 
@@ -122,6 +122,10 @@ class AudioPreprocessing:
 
                     writer.writerow([audio_name.name, audio_file.parent.name, dataset_dir])
                     f.flush()
+
+
+    def __call__(self, *args, **kwds) -> None:
+        self.main()
 
 
 
@@ -170,3 +174,7 @@ class ImagePreprocessing:
 
                     writer.writerow([image_name.name, image_file.parent.name, dataset_dir])
                     f.flush()
+
+
+    def __call__(self, *args, **kwds) -> None:
+        self.main()

@@ -335,7 +335,7 @@ class UnpairedTrainer:
         unpaired_dataset = UnpairedDataset(
             image_dataset=image_dataset,
             audio_dataset=audio_dataset,
-            samples_per_epoch=args.batch_size*16
+            samples_per_epoch=args.batch_size*8
         )
 
         ## Load Transform Functions
@@ -402,7 +402,7 @@ class UnpairedTrainer:
                 ), dim=1
             )
 
-            preds = self.fusion_model(inputs).argmax(dim=1)
+            preds = self.fusion_model(inputs)
 
             loss = self.criterion(preds, labels)
 
