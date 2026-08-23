@@ -1,5 +1,6 @@
 # Dependencies
 from argparse import Namespace
+from itertools import chain
 
 from tqdm import trange
 
@@ -7,6 +8,7 @@ from . import (
     BirdImageDataset,
     BirdAudioDataset,
     UnpairedDataset,
+    PairedDataset, AudioTransform,
     MobileViT_XXS,
 )
 
@@ -269,7 +271,6 @@ class AudioTrainer:
         self.train()
 
 
-
 class UnpairedTrainer:
     def __init__(self, args: Namespace):
 
@@ -482,9 +483,6 @@ class UnpairedTrainer:
         self.train()
 
 
-# Now the power is about to go out.
-# Usually the neighborhood electricity is cut for two hours during the day.
-# TODO: Remember I need to fix this part later. 
 class PairedTrainer:
     def __init__(self, args: Namespace):
 
@@ -526,7 +524,11 @@ class PairedTrainer:
         self.f1_metric = MulticlassF1Score(args.num_classes).to(self.device)
         self.criterion = nn.CrossEntropyLoss().to(self.device)
         self.optimizer = torch.optim.SGD(
-            self.fusion_model.parameters(), # FIXME
+            chain(
+                self.image_model.parameters(),
+                self.audio_model.parameters(),
+                self.fusion_model.parameters(),
+            ),
             args.lr,
             momentum = 0.9,
             weight_decay = args.weight_decay
@@ -535,32 +537,26 @@ class PairedTrainer:
             self.optimizer, args.epochs
         )
 
-        ## Define Dataset: Image Modal Dataset
-        image_dataset = BirdImageDataset(args.img_dir, args.img_ann, True) # FIXME
-
-        ## Define Dataset: Audio Modal Dataset
-        audio_dataset = BirdAudioDataset( # FIXME
-            audio_dir=args.audio_dir,
-            ann_file=args.audio_ann,
-            sample_rate=args.sample_rate,
-            audio_length=args.audio_length,
-        )
-
         ## Define Datasets: Pairing Dataset
-        paired_dataset = PairedDataset( # FIXME
-            image_dataset=image_dataset,
-            audio_dataset=audio_dataset,
-            samples_per_epoch=args.batch_size*8
-        )
+        train_dataset   = PairedDataset(dst='Bird-MY10')
+        val_dataset     = PairedDataset(dst='Bird-SEA10')
 
         ## Load transform function
-        self.transform = audio_dataset.transform # FIXME
+        self.transform = AudioTransform()
 
         ## Define DataLoader
-        self.data_loader = DataLoader(
-            dataset=paired_dataset,
+        self.train_loader = DataLoader(
+            dataset=train_dataset,
             batch_size=args.batch_size,
             shuffle=True,
+            num_workers=1,
+            pin_memory=True,
+        )
+
+        self.val_loader = DataLoader(
+            dataset=val_dataset,
+            batch_size=args.batch_size,
+            shuffle=False,
             num_workers=1,
             pin_memory=True,
         )
@@ -603,26 +599,22 @@ class PairedTrainer:
             self.fusion_model.load_state_dict(state)
 
     def _train_epoch(self) -> float:
+        self.image_model.train()
+        self.audio_model.train()
         self.fusion_model.train()
         
         losses = list()
 
-        for images, audios, labels in self.data_loader:
-            # images = self.image_transform(images, train=False)
+        for images, audios, labels in self.train_loader:
             images = images.to(self.device)
             audios = audios.to(self.device)
-            audios = self.transform(audios, train=True)
+            audios = self.transform(audios)
             labels = labels.to(self.device)
 
-            _, image_features = self.image_model(images)
-            _, audio_features = self.audio_model(audios)
+            _, imf = self.image_model(images)
+            _, auf = self.audio_model(audios)
 
-            inputs = torch.cat(
-                (
-                    image_features,
-                    audio_features
-                ), dim=1
-            )
+            inputs = torch.cat((imf, auf), dim=1)
 
             preds = self.fusion_model(inputs)
 
@@ -648,22 +640,17 @@ class PairedTrainer:
         self.audio_model.eval()
         self.fusion_model.eval()
 
-        for images, audios, labels in self.data_loader:
+        for images, audios, labels in self.val_loader:
             images = images.to(self.device)
             audios = audios.to(self.device)
             audios = self.transform(audios, train=False)
             labels = labels.to(self.device)
 
             with torch.no_grad():
-                _, image_features = self.image_model(images)
-                _, audio_features = self.audio_model(audios)
+                _, imf = self.image_model(images)
+                _, auf = self.audio_model(audios)
 
-                inputs = torch.cat(
-                    (
-                        image_features,
-                        audio_features
-                    ), dim=1
-                )
+                inputs = torch.cat((imf, auf), dim=1)
 
                 preds = self.fusion_model(inputs).argmax(dim=1)
 

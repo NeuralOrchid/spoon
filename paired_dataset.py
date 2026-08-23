@@ -14,7 +14,11 @@ from torch.utils.data import Dataset
 
 
 class AudioTransform:
-    def __init__(self, sample_rate: int, audio_length: float):
+    def __init__(
+            self,
+            sample_rate:int=32_000,
+            audio_length:float=6.128,
+    ):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.sample_rate = sample_rate
         self.num_samples = int(audio_length * sample_rate)
@@ -102,8 +106,8 @@ class AudioTransform:
 class PairedDataset(Dataset):
     def __init__(
         self,
-        dir: Path,
-        ann_file: str | Path,
+        dir: Path = Path('dataset'),
+        ann_file: str | Path = Path('dataset/paired-annotations.csv'),
         dst: Optional[Literal[
             'Bird-MY10',    # Train
             'Bird-SEA10',   # Val
@@ -165,7 +169,7 @@ class PairedDataset(Dataset):
         pb = m - h - pt
         return ImageOps.expand(img, border=(pl, pt, pr, pb))
 
-    def _transform_if_necessary(self, signal, sr):
+    def _transform_if_necessary(self, signal:torch.Tensor, sr:int) -> torch.Tensor:
         # Resample if necessary
         if sr != 32_000:
             resampler = torchaudio.transforms.Resample(sr, 32_000)
@@ -189,16 +193,56 @@ class PairedDataset(Dataset):
         return len(self.ann)
 
     def __getitem__(self, idx: int) -> torch.Tensor:
-        image_path = self.image_dir / self.ann.loc[idx, "file"]
-        audio_path = self.audio_dir / self.ann.loc[idx, "file"]
+        image_path = self.image_dir / self.ann.loc[idx, "image_file"]
+        audio_path = self.audio_dir / self.ann.loc[idx, "audio_file"]
         label = int(self.ann.loc[idx, "label"])
 
         image = Image.open(image_path).convert("RGB")
         image = self._pad2square(image)
+        image = self.transform(image)
 
-        if self.train is not None:
-            image = self.transform(image, self.train)
+        signal, sr = torchaudio.load(audio_path)
+        audio = self._transform_if_necessary(signal, sr)
 
-        return image, label
+        # image: [3, 256, 256]
+        # audio: [1, 128, 384]
+        # label: 0
+
+        return image, audio, label
 
 
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+
+    train_dataset   = PairedDataset(dst='Bird-MY10')
+    val_dataset     = PairedDataset(dst='Bird-SEA10')
+
+    image, audio, label = val_dataset[0]
+    transform = AudioTransform()
+    audio = transform(audio, False)
+    
+    print("image:", image.shape)
+    print("audio:", audio.shape)
+    print("label:", label)
+
+    mean = torch.tensor([0.485, 0.456, 0.406])
+    std  = torch.tensor([0.229, 0.224, 0.225])
+
+    image = image * std[:, None, None] + mean[:, None, None]
+    image = image.permute(1, 2, 0)
+    image = image.clamp(0, 1)
+
+    audio = audio.permute(1, 2, 0)
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+    axes[0].imshow(image)
+    axes[0].axis("off")
+    axes[0].set_title("Bird Image")
+
+    axes[1].imshow(audio)
+    axes[1].axis("off")
+    axes[1].set_title("Log-Mel Spectrogram")
+
+    plt.tight_layout()
+    plt.show()
