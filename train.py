@@ -66,8 +66,8 @@ class ImageTrainer:
         )
         self.val_loader = DataLoader(
             BirdImageDataset(args.img_dir, args.img_ann, False, dst='Bird-SEA10'),
-            batch_size = args.batch_size, shuffle = True,
-            num_workers = 1,  pin_memory = False
+            batch_size = args.batch_size, shuffle = False,
+            num_workers = 1,  pin_memory = True
         )
 
 
