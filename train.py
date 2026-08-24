@@ -694,6 +694,7 @@ class PairedTrainer:
         all_preds = torch.cat(all_preds, dim=0)
         all_targets = torch.cat(all_targets, dim=0)
 
+        _save_to_csv(predictions=all_preds, targets=all_targets)
 
         return self.f1_metric(all_preds, all_targets).item()
 
