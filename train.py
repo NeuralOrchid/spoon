@@ -109,7 +109,7 @@ class ImageTrainer:
             targets = targets.to(self.device)
 
             with torch.no_grad():
-                preds, _ = self.model(inputs).argmax(dim=1)
+                preds = self.model(inputs)[0].argmax(dim=1)
                 all_preds.append(preds)
                 all_targets.append(targets)
 
@@ -258,7 +258,7 @@ class AudioTrainer:
             inputs = self.transform(inputs, train=False)
 
             with torch.no_grad():
-                preds, _ = self.model(inputs).argmax(dim=1)
+                preds = self.model(inputs)[0].argmax(dim=1)
                 all_preds.append(preds)
                 all_targets.append(targets)
 
