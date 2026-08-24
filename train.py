@@ -137,6 +137,9 @@ class ImageTrainer:
         # Uncomment if necessary
         # self._save_model_weights()
 
+    def __call__(self, *args, **kwds):
+        self.train()
+
 
 class AudioTrainer:
     def __init__(self, args: Namespace):
@@ -172,14 +175,30 @@ class AudioTrainer:
             ann_file=args.audio_ann,
             sample_rate=args.sample_rate,
             audio_length=args.audio_length,
+            dst='Bird-MY10'
+        )
+        audio_dataset_ = BirdAudioDataset(
+            audio_dir=args.audio_dir,
+            ann_file=args.audio_ann,
+            sample_rate=args.sample_rate,
+            audio_length=args.audio_length,
+            dst='Bird-SEA10'
         )
 
         self.transform = audio_dataset.transform
 
-        self.data_loader = DataLoader(
+        self.train_loader = DataLoader(
             dataset=audio_dataset,
             batch_size=args.batch_size,
             shuffle=True,
+            num_workers=1,
+            pin_memory=True,
+        )
+
+        self.val_loader = DataLoader(
+            dataset=audio_dataset_,
+            batch_size=args.batch_size,
+            shuffle=False,
             num_workers=1,
             pin_memory=True,
         )
@@ -204,7 +223,7 @@ class AudioTrainer:
 
         losses = list()
 
-        for inputs, targets in self.data_loader:
+        for inputs, targets in self.train_loader:
             inputs = inputs.to(self.device)
             targets = targets.to(self.device)
 
@@ -232,7 +251,7 @@ class AudioTrainer:
 
         self.model.train(False)
 
-        for inputs, targets in self.data_loader:
+        for inputs, targets in self.val_loader:
             inputs = inputs.to(self.device)
             targets = targets.to(self.device)
 
@@ -264,7 +283,7 @@ class AudioTrainer:
                 loop_postfix['f1 score'] = f1_score
 
             loop.set_postfix(loop_postfix)
-        self._save_model_weights()
+        # self._save_model_weights() # Same...
 
 
     def __call__(self, *args, **kwds):
