@@ -20,9 +20,9 @@ from torchmetrics.classification import MulticlassF1Score
 
 
 def _save_to_csv(**tensors: torch.Tensor) -> None:
-    columns = zip(
+    columns = zip(*[
         x.detach().cpu().flatten().tolist() for x in tensors.values()
-    )
+    ])
     with open("out.csv", "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow([header for header in tensors.keys()])
@@ -148,7 +148,7 @@ class ImageTrainer:
 
             loop.set_postfix(loop_postfix)
         # Uncomment if necessary
-        self._save_model_weights()
+        # self._save_model_weights()
 
     def __call__(self, *args, **kwds):
         self.train()
@@ -279,6 +279,7 @@ class AudioTrainer:
         all_preds = torch.cat(all_preds, dim=0)
         all_targets = torch.cat(all_targets, dim=0)
 
+        _save_to_csv(predictions=all_preds, targets=all_targets)
 
         return self.f1_metric(all_preds, all_targets).item()
 
