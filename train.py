@@ -1,6 +1,7 @@
 # Dependencies
 from argparse import Namespace
 from itertools import chain
+import csv
 
 from tqdm import trange
 
@@ -16,6 +17,17 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader, Subset
 from torchmetrics.classification import MulticlassF1Score
+
+
+def _save_to_csv(**tensors: torch.Tensor) -> None:
+    columns = zip(
+        x.detach().cpu().flatten().tolist() for x in tensors.values()
+    )
+    with open("out.csv", "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([header for header in tensors.keys()])
+        writer.writerows(columns)
+
 
 
 
@@ -117,6 +129,7 @@ class ImageTrainer:
         all_preds = torch.cat(all_preds, dim=0)
         all_targets = torch.cat(all_targets, dim=0)
 
+        _save_to_csv(predictions=all_preds, targets=all_targets)
 
         return self.f1_metric(all_preds, all_targets).item()
 
@@ -129,13 +142,13 @@ class ImageTrainer:
             loss = self._train_epoch()
             loop_postfix['loss'] = loss
 
-            if epoch % 5 == 0:
+            if epoch % 10 == 0:
                 f1_score = self._val_epoch()
                 loop_postfix['f1 score'] = f1_score
 
             loop.set_postfix(loop_postfix)
         # Uncomment if necessary
-        # self._save_model_weights()
+        self._save_model_weights()
 
     def __call__(self, *args, **kwds):
         self.train()
@@ -278,7 +291,7 @@ class AudioTrainer:
             loss = self._train_epoch()
             loop_postfix['loss'] = loss
 
-            if epoch % 5 == 0:
+            if epoch % 10 == 0:
                 f1_score = self._val_epoch()
                 loop_postfix['f1 score'] = f1_score
 
@@ -489,7 +502,7 @@ class UnpairedTrainer:
             loss = self._train_epoch()
             loop_postfix['loss'] = loss
 
-            if epoch % 5 == 0:
+            if epoch % 10 == 0:
                 f1_score = self._val_epoch()
                 loop_postfix['f1 score'] = f1_score
 
@@ -695,7 +708,7 @@ class PairedTrainer:
             loss = self._train_epoch()
             loop_postfix['loss'] = loss
 
-            if epoch % 5 == 0:
+            if epoch % 10 == 0:
                 f1_score = self._val_epoch()
                 loop_postfix['f1 score'] = f1_score
 
