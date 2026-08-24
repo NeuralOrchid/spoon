@@ -48,12 +48,12 @@ class ImageTrainer:
 
         # DataLoaders
         self.train_loader = DataLoader(
-            BirdImageDataset(args.img_dir, args.img_ann, True),
+            BirdImageDataset(args.img_dir, args.img_ann, True, dst='Bird-MY10'),
             batch_size = args.batch_size, shuffle = True,
             num_workers = 1,  pin_memory = True
         )
         self.val_loader = DataLoader(
-            BirdImageDataset(args.img_dir, args.img_ann, False),
+            BirdImageDataset(args.img_dir, args.img_ann, False, dst='Bird-SEA10'),
             batch_size = args.batch_size, shuffle = True,
             num_workers = 1,  pin_memory = True
         )
@@ -134,8 +134,8 @@ class ImageTrainer:
                 loop_postfix['f1 score'] = f1_score
 
             loop.set_postfix(loop_postfix)
-
-        self._save_model_weights()
+        # Uncomment if necessary
+        # self._save_model_weights()
 
 
 class AudioTrainer:
