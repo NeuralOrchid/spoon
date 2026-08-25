@@ -8,7 +8,6 @@ from tqdm import trange
 from . import (
     BirdImageDataset,
     BirdAudioDataset,
-    UnpairedDataset,
     PairedDataset, AudioTransform,
     MobileViT_XXS,
 )
@@ -548,7 +547,7 @@ class GenuineComplementary:
         self.f1_metric = MulticlassF1Score(args.num_classes).to(self.device)
 
         ## Define Dataset
-        dataset = PairedDataset(dst='Bird-MY10')
+        dataset = PairedDataset(dst='Bird-SEA10')
 
         ## Load transform function
         self.transform = AudioTransform()
@@ -587,12 +586,16 @@ class GenuineComplementary:
 
 
     def __call__(self):
-        all_preds = []
-        all_targets = []
-
         self.image_model.eval()
         self.audio_model.eval()
         self.fusion_model.eval()
+
+        # ------------------------------
+        # Image only
+        # ------------------------------
+
+        all_preds = []
+        all_targets = []
 
         for images, audios, labels in self.data_loader:
             images = images.to(self.device)
@@ -620,6 +623,13 @@ class GenuineComplementary:
         score = self.f1_metric(all_preds, all_targets).item()
 
         _save_to_csv(f"image-complementary-{score}.csv", predictions=all_preds, targets=all_targets)
+
+        # ------------------------------
+        # Audio only
+        # ------------------------------
+
+        all_preds = []
+        all_targets = []
 
         for images, audios, labels in self.data_loader:
             images = images.to(self.device)
