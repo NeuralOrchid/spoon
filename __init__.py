@@ -8,4 +8,5 @@ from .train import (
     ImageTrainer,
     AudioTrainer,
     PairedTrainer,
+    GenuineComplementary,
 )

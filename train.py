@@ -505,3 +505,145 @@ class PairedTrainer:
 
             loop.set_postfix(loop_postfix)
         # self._save_model_weights() # FIXME: uncomment if necessary
+
+
+
+class GenuineComplementary:
+    def __init__(self, args: Namespace):
+        ## Load default Parameters
+        self.args = args
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        ## Define Models: Image Modality Encoder
+        self.audio_model = MobileViT_XXS(
+            img_size = (128, 384),
+            num_classes = args.num_classes,
+            in_channels = 1,
+        ).to(self.device)
+
+        ## Define Models: Audio Modality Encoder
+        self.image_model = MobileViT_XXS(
+            img_size = args.image_size,
+            num_classes = args.num_classes
+        ).to(self.device)
+
+        ## Define Models: Fusion Model 
+        self.fusion_model = nn.Sequential(
+            nn.LayerNorm(640),
+            nn.Linear(640, 256),
+            nn.GELU(),
+            nn.Dropout(0.2),
+
+            nn.Linear(256, 128),
+            nn.GELU(),
+            nn.Dropout(0.2),
+
+            nn.Linear(128, args.num_classes)
+        ).to(self.device)
+
+        ## Load Model Weights
+        self._load_model_weights()
+
+        ## Setup Macro-F1 Metric
+        self.f1_metric = MulticlassF1Score(args.num_classes).to(self.device)
+
+        ## Define Dataset
+        dataset = PairedDataset(dst='Bird-MY10')
+
+        ## Load transform function
+        self.transform = AudioTransform()
+
+        ## Define DataLoader
+        self.data_loader = DataLoader(
+            dataset=dataset,
+            batch_size=args.batch_size,
+            shuffle=False,
+            num_workers=1,
+            pin_memory=True,
+        )
+        
+
+    def _load_model_weights(self) -> None:
+        if self.args.image_mobilevitxxs_checkpoint.exists():
+            state = torch.load(
+                self.args.image_mobilevitxxs_checkpoint, 
+                map_location=self.device,
+            )
+            self.image_model.load_state_dict(state)
+
+        if self.args.audio_mobilevitxxs_checkpoint.exists():
+            state = torch.load(
+                self.args.audio_mobilevitxxs_checkpoint, 
+                map_location=self.device,
+            )
+            self.audio_model.load_state_dict(state)
+
+        if self.args.fusion_model_checkpoint.exists():
+            state = torch.load(
+                self.args.fusion_model_checkpoint, 
+                map_location=self.device,
+            )
+            self.fusion_model.load_state_dict(state)
+
+
+    def __call__(self):
+        all_preds = []
+        all_targets = []
+
+        self.image_model.eval()
+        self.audio_model.eval()
+        self.fusion_model.eval()
+
+        for images, audios, labels in self.data_loader:
+            images = images.to(self.device)
+            audios = audios.to(self.device)
+            audios = self.transform(audios, train=False)
+            labels = labels.to(self.device)
+
+            audios = torch.rand_like(audios)
+
+            with torch.no_grad():
+                _, imf = self.image_model(images)
+                _, auf = self.audio_model(audios)
+
+                inputs = torch.cat((imf, auf), dim=1)
+
+                preds = self.fusion_model(inputs).argmax(dim=1)
+
+                all_preds.append(preds)
+                all_targets.append(labels)
+
+        # Concatenate all batches
+        all_preds = torch.cat(all_preds, dim=0)
+        all_targets = torch.cat(all_targets, dim=0)
+
+        score = self.f1_metric(all_preds, all_targets).item()
+
+        _save_to_csv(f"image-complementary-{score}.csv", predictions=all_preds, targets=all_targets)
+
+        for images, audios, labels in self.data_loader:
+            images = images.to(self.device)
+            audios = audios.to(self.device)
+            audios = self.transform(audios, train=False)
+            labels = labels.to(self.device)
+
+            images = torch.rand_like(images)
+
+            with torch.no_grad():
+                _, imf = self.image_model(images)
+                _, auf = self.audio_model(audios)
+
+                inputs = torch.cat((imf, auf), dim=1)
+
+                preds = self.fusion_model(inputs).argmax(dim=1)
+
+                all_preds.append(preds)
+                all_targets.append(labels)
+
+        # Concatenate all batches
+        all_preds = torch.cat(all_preds, dim=0)
+        all_targets = torch.cat(all_targets, dim=0)
+
+        score = self.f1_metric(all_preds, all_targets).item()
+
+        _save_to_csv(f"audio-complementary-{score}.csv", predictions=all_preds, targets=all_targets)
