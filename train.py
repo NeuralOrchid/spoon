@@ -605,7 +605,7 @@ class GenuineComplementary:
             audios = self.transform(audios, train=False)
             labels = labels.to(self.device)
 
-            audios = torch.rand_like(audios)
+            audios = torch.zeros_like(audios)
 
             with torch.no_grad():
                 _, imf = self.image_model(images)
@@ -639,7 +639,7 @@ class GenuineComplementary:
             audios = self.transform(audios, train=False)
             labels = labels.to(self.device)
 
-            images = torch.rand_like(images)
+            images = torch.zeros_like(images)
 
             with torch.no_grad():
                 _, imf = self.image_model(images)
