@@ -38,7 +38,8 @@ class ImageTrainer:
         # Model / network
         self.model = MobileViT_XXS(
             img_size = args.image_size,
-            num_classes = args.num_classes
+            num_classes = args.num_classes,
+            is_xxs=args.model_size,
         ).to(self.device)
 
         if args.image_mobilevitxxs_checkpoint.exists():
@@ -59,7 +60,7 @@ class ImageTrainer:
 
         # DataLoaders
         self.train_loader = DataLoader(
-            BirdImageDataset(args.img_dir, args.img_ann, True, dst='Bird-MY10'),
+            BirdImageDataset(args.img_dir, args.img_ann, True, dst=None), # FIXME
             batch_size = args.batch_size, shuffle = True,
             num_workers = 1,  pin_memory = True
         )
@@ -163,6 +164,7 @@ class AudioTrainer:
             img_size = (128, 384),
             num_classes = args.num_classes,
             in_channels = 1,
+            is_xxs=args.model_size,
         ).to(self.device)
 
         if args.audio_mobilevitxxs_checkpoint.exists():
@@ -187,7 +189,7 @@ class AudioTrainer:
             ann_file=args.audio_ann,
             sample_rate=args.sample_rate,
             audio_length=args.audio_length,
-            dst='Bird-MY10'
+            # dst='Bird-MY10' # FIXME:
         )
         audio_dataset_ = BirdAudioDataset(
             audio_dir=args.audio_dir,

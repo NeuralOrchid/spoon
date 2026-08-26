@@ -5,7 +5,7 @@
 
 
 # Dependencies
-from typing import Callable, Optional
+from typing import Callable, Optional, Literal
 from einops import rearrange
 
 import torch
@@ -278,11 +278,12 @@ class MobileViT(nn.Module):
 
 
 def MobileViT_XXS(
-        img_size: int | tuple[int, int],
+        img_size:int | tuple[int, int],
         num_classes:int = 10,
         in_channels:int = 3,
+        is_xxs:Literal['xxs', 'xs', 's'] = "xxs",
 ):
-    cfg_xxs = model_cfg["xxs"]
+    cfg_xxs = model_cfg[is_xxs] # Stop judging by mere appearances, but instead judge correctly.
     model_xxs = MobileViT(
         img_size,
         cfg_xxs["features"],
