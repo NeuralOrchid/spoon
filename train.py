@@ -60,7 +60,7 @@ class ImageTrainer:
 
         # DataLoaders
         self.train_loader = DataLoader(
-            BirdImageDataset(args.img_dir, args.img_ann, True, dst=None), # FIXME
+            BirdImageDataset(args.img_dir, args.img_ann, True, dst='Bird-MY10'),
             batch_size = args.batch_size, shuffle = True,
             num_workers = 1,  pin_memory = True
         )
@@ -189,14 +189,14 @@ class AudioTrainer:
             ann_file=args.audio_ann,
             sample_rate=args.sample_rate,
             audio_length=args.audio_length,
-            # dst='Bird-MY10' # FIXME:
+            dst='Bird-MY10',
         )
         audio_dataset_ = BirdAudioDataset(
             audio_dir=args.audio_dir,
             ann_file=args.audio_ann,
             sample_rate=args.sample_rate,
             audio_length=args.audio_length,
-            dst='Bird-SEA10'
+            dst='Bird-SEA10',
         )
 
         self.transform = audio_dataset.transform
