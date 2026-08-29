@@ -120,11 +120,13 @@ class MultiHeadSelfAttention(nn.Module):
         self.w_out = nn.Linear(_weight_dim, dim, bias = False)
 
     def forward(self, x):
+        print("Attention input:", x.shape)
         qkv = self.to_qvk(x).chunk(3, dim = -1)
         q, k, v = map(lambda t: rearrange(t, 'b p n (h d) -> b p h n d', h = self.num_heads), qkv)
 
         dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale_factor
         attn = torch.softmax(dots, dim = -1)
+        print("Attention:", attn.shape)
         out = torch.matmul(attn, v)
         out = rearrange(out, 'b p h n d -> b p n (h d)')
         return self.w_out(out)
@@ -199,6 +201,7 @@ class MobileVitBlock(nn.Module):
         self.fusion_block2 = nn.Conv2d(in_channels * 2, out_channels, 3, padding = 1)
 
     def forward(self, x):
+        print("Mobile Block:", x.shape)
         local_repr = self.local_representation(x)
         # global_repr = self.global_representation(local_repr)
         _, _, h, w = local_repr.shape
