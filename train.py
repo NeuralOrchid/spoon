@@ -1,9 +1,10 @@
 # Dependencies
+import os
 from argparse import Namespace
 from itertools import chain
 import csv
 
-from tqdm import trange
+from tqdm import trange, tqdm
 
 from . import (
     BirdImageDataset,
@@ -663,3 +664,108 @@ class GenuineComplementary:
         score = self.f1_metric(all_preds, all_targets).item()
 
         _save_to_csv(f"audio-complementary-{score}.csv", predictions=all_preds, targets=all_targets)
+
+
+
+class AttentionAnalysis:
+    def __init__(self, args: Namespace):
+        self.args = args
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        ## Define Models: Image Modality Encoder
+        self.audio_model = MobileViT_XXS(
+            img_size = (128, 384),
+            num_classes = args.num_classes,
+            in_channels = 1,
+        ).to(self.device).eval()
+
+        ## Define Models: Audio Modality Encoder
+        self.image_model = MobileViT_XXS(
+            img_size = args.image_size,
+            num_classes = args.num_classes
+        ).to(self.device).eval()
+
+        ## Define Models: Fusion Model 
+        self.fusion_model = nn.Sequential(
+            nn.LayerNorm(640),
+            nn.Linear(640, 256),
+            nn.GELU(),
+            nn.Dropout(0.2),
+
+            nn.Linear(256, 128),
+            nn.GELU(),
+            nn.Dropout(0.2),
+
+            nn.Linear(128, args.num_classes)
+        ).to(self.device).eval()
+
+        ## Load Model Weights
+        self._load_model_weights()
+
+        ## Setup Macro-F1 Metric
+        self.f1_metric = MulticlassF1Score(args.num_classes).to(self.device)
+
+        ## Define Dataset: Paired Dataset
+        dataset = PairedDataset(dst='Bird-SEA10')
+
+        ## Load transform function
+        self.transform = AudioTransform()
+
+        self.val_loader = DataLoader(
+            dataset=dataset,
+            batch_size=1,
+            shuffle=False,
+            num_workers=1,
+            pin_memory=True,
+        )
+
+    def _load_model_weights(self) -> None:
+        if self.args.image_mobilevitxxs_checkpoint.exists():
+            state = torch.load(
+                self.args.image_mobilevitxxs_checkpoint, 
+                map_location=self.device,
+            )
+            self.image_model.load_state_dict(state)
+
+        if self.args.audio_mobilevitxxs_checkpoint.exists():
+            state = torch.load(
+                self.args.audio_mobilevitxxs_checkpoint, 
+                map_location=self.device,
+            )
+            self.audio_model.load_state_dict(state)
+
+        if self.args.fusion_model_checkpoint.exists():
+            state = torch.load(
+                self.args.fusion_model_checkpoint, 
+                map_location=self.device,
+            )
+            self.fusion_model.load_state_dict(state)
+
+    def __call__(self, *args, **kwds):
+        loop = tqdm(self.val_loader)
+        all_preds = []
+        all_targets = []
+
+        for images, audios, labels in loop:
+            images = images.to(self.device)
+            audios = audios.to(self.device)
+            audios = self.transform(audios, train=False)
+            labels = labels.to(self.device)
+
+            with torch.no_grad():
+                _, imf = self.image_model(images)
+                _, auf = self.audio_model(audios)
+
+                inputs = torch.cat((imf, auf), dim=1)
+
+                preds = self.fusion_model(inputs).argmax(dim=1)
+
+                all_preds.append(preds)
+                all_targets.append(labels)
+
+        all_preds = torch.cat(all_preds, dim=0)
+        all_targets = torch.cat(all_targets, dim=0)
+
+        score = self.f1_metric(all_preds, all_targets).item()
+        
+        _save_to_csv(f"attention-analysis-{score}.csv", predictions=all_preds, targets=all_targets)
