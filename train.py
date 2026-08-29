@@ -5,6 +5,7 @@ from itertools import chain
 import csv
 
 from tqdm import trange, tqdm
+import numpy as np
 
 from . import (
     BirdImageDataset,
@@ -742,19 +743,22 @@ class AttentionAnalysis:
             self.fusion_model.load_state_dict(state)
 
     def __call__(self, *args, **kwds):
-        loop = tqdm(self.val_loader)
+        os.mkdir(f'out')
+        loop = tqdm(enumerate(self.val_loader))
         all_preds = []
         all_targets = []
 
-        for images, audios, labels in loop:
-            images = images.to(self.device)
-            audios = audios.to(self.device)
-            audios = self.transform(audios, train=False)
+        for idx, (image, audio, labels) in loop:
+            os.mkdir(f'out/{idx:03d}')
+
+            image = image.to(self.device)
+            audio = audio.to(self.device)
+            audio = self.transform(audio, train=False)
             labels = labels.to(self.device)
 
             with torch.no_grad():
-                _, imf = self.image_model(images)
-                _, auf = self.audio_model(audios)
+                _, imf = self.image_model(image)
+                _, auf = self.audio_model(audio)
 
                 inputs = torch.cat((imf, auf), dim=1)
 
@@ -762,6 +766,15 @@ class AttentionAnalysis:
 
                 all_preds.append(preds)
                 all_targets.append(labels)
+
+            np.save(
+                 f"{idx:03d}/image.npy",
+                image.detach().squeeze().cpu().numpy()
+            )
+            np.save(
+                 f"{idx:03d}/audio.npy",
+                audio.detach().squeeze().cpu().numpy()
+            )
 
         all_preds = torch.cat(all_preds, dim=0)
         all_targets = torch.cat(all_targets, dim=0)

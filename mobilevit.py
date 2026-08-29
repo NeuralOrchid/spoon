@@ -72,16 +72,16 @@ class SaveAttention:
 
         for p in range(P):
             np.save(
-                self.root / f"attn{i} {j} ({p}).npy",
+                self.root / f"{i:03d}" / f"attn {j} ({p}).npy",
                 attn[p].cpu().numpy(),
             )
 
         np.save(
-            self.root / f"{msg}{i} {j}-1.npy",
+            self.root / f"{i:03d}" / f"{msg} {j}-1.npy",
             avg_attn1.cpu().numpy(),
         )
         np.save(
-            self.root / f"{msg}{i} {j}-2.npy",
+            self.root / f"{i:03d}" / f"{msg} {j}-2.npy",
             avg_attn2.cpu().numpy(),
         )
 
