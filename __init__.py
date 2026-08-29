@@ -9,4 +9,5 @@ from .train import (
     AudioTrainer,
     PairedTrainer,
     GenuineComplementary,
+    AttentionAnalysis,
 )

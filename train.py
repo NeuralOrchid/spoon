@@ -768,11 +768,11 @@ class AttentionAnalysis:
                 all_targets.append(labels)
 
             np.save(
-                 f"{idx:03d}/image.npy",
+                 f"out/{idx:03d}/image.npy",
                 image.detach().squeeze().cpu().numpy()
             )
             np.save(
-                 f"{idx:03d}/audio.npy",
+                 f"out/{idx:03d}/audio.npy",
                 audio.detach().squeeze().cpu().numpy()
             )
 
