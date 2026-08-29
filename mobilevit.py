@@ -36,6 +36,13 @@ model_cfg = {
 
 
 
+def _save_attention(attn: torch.Tensor) -> None:
+    P, N, _ = attn.shape
+    pass
+
+
+
+
 class ConvNormAct(nn.Module):
     def __init__(self,
         in_channels: int,
@@ -105,7 +112,7 @@ class MultiHeadSelfAttention(nn.Module):
     dim_head:
         The dimension of the each head
     """
-    def __init__(self, dim, num_heads = 8, dim_head = None):
+    def __init__(self, dim, num_heads = 1, dim_head = None):
         super(MultiHeadSelfAttention, self).__init__()
         self.num_heads = num_heads
         self.dim_head = int(dim / num_heads) if dim_head is None else dim_head
@@ -123,6 +130,11 @@ class MultiHeadSelfAttention(nn.Module):
 
         dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale_factor
         attn = torch.softmax(dots, dim = -1)
+
+        # Save attention is Batch is one
+        if attn.shape[0] == 1:
+            _save_attention(attn.detach().squeeze())
+
         out = torch.matmul(attn, v)
         out = rearrange(out, 'b p h n d -> b p n (h d)')
         return self.w_out(out)
