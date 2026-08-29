@@ -3,6 +3,7 @@ ignore-me/
 __pycache__/
 .env/
 dataset/
+out/
 
 # Jupyter Notebook
 .ipynb_checkpoints

@@ -7,7 +7,9 @@
 # Dependencies
 from typing import Callable, Optional, Literal
 from einops import rearrange
+from pathlib import Path
 
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -35,12 +37,57 @@ model_cfg = {
 }
 
 
+class SaveAttention:
+    def __init__(self, root: Path):
+        self.root = root
+        self.image_counter = 0
+        self.audio_counter = 0
 
-def _save_attention(attn: torch.Tensor) -> None:
-    P, N, _ = attn.shape
-    pass
+    def __call__(self, attn: torch.Tensor) -> None:
+        P, N, N_ = attn.shape
+        assert N == N_, f"Attention scores must be square, got {N} x {N_}"
+
+        avg_attn1 = attn.mean(dim=1)
+        avg_attn2 = attn.mean(dim=2)
+
+        if N%3 == 0:
+            msg = 'audio'
+            H = int((N // 3) ** 0.5)
+            W = H*3
+
+            i = self.audio_counter // 9
+            j = self.audio_counter % 9
+            self.audio_counter += 1
+        else:
+            msg = 'image'
+            H = W = int(N**0.5)
+            
+            i = self.image_counter // 9
+            j = self.image_counter % 9
+            self.image_counter += 1
 
 
+        avg_attn1 = rearrange(avg_attn1, '(ph pw) (h w) -> (h ph) (w pw)', h=H, w=W, ph=2, pw=2)
+        avg_attn2 = rearrange(avg_attn2, '(ph pw) (h w) -> (h ph) (w pw)', h=H, w=W, ph=2, pw=2)
+
+        for p in range(P):
+            np.save(
+                self.root / f"attn{i} {j} ({p}).npy",
+                attn[p].cpu().numpy(),
+            )
+
+        np.save(
+            self.root / f"{msg}{i} {j}-1.npy",
+            avg_attn1.cpu().numpy(),
+        )
+        np.save(
+            self.root / f"{msg}{i} {j}-2.npy",
+            avg_attn2.cpu().numpy(),
+        )
+
+
+
+SAVE_ATTENTION = SaveAttention(Path('out'))
 
 
 class ConvNormAct(nn.Module):
@@ -118,7 +165,7 @@ class MultiHeadSelfAttention(nn.Module):
         self.dim_head = int(dim / num_heads) if dim_head is None else dim_head
         _weight_dim = self.num_heads * self.dim_head
         self.to_qvk = nn.Linear(dim, _weight_dim * 3, bias = False)
-        self.scale_factor = dim ** -0.5
+        self.scale_factor = self.dim_head ** -0.5
 
         # Weight matrix for output, Size: num_heads*dim_head X dim
         # Final linear transformation layer
@@ -131,9 +178,8 @@ class MultiHeadSelfAttention(nn.Module):
         dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale_factor
         attn = torch.softmax(dots, dim = -1)
 
-        # Save attention is Batch is one
-        if attn.shape[0] == 1:
-            _save_attention(attn.detach().squeeze())
+        # Save attention if Batch is one
+        if x.shape[0] == 1: SAVE_ATTENTION(attn.detach().squeeze())
 
         out = torch.matmul(attn, v)
         out = rearrange(out, 'b p h n d -> b p n (h d)')
