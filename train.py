@@ -714,7 +714,7 @@ class AttentionAnalysis:
 
         self.val_loader = DataLoader(
             dataset=dataset,
-            batch_size=1,
+            batch_size=64,
             shuffle=False,
             num_workers=1,
             pin_memory=True,
@@ -745,7 +745,9 @@ class AttentionAnalysis:
     def __call__(self, *args, **kwds):
         os.mkdir(f'out')
         loop = tqdm(enumerate(self.val_loader))
-        all_preds = []
+        all_i_preds = []
+        all_a_preds = []
+        all_f_preds = []
         all_targets = []
 
         for idx, (image, audio, labels) in loop:
@@ -757,14 +759,18 @@ class AttentionAnalysis:
             labels = labels.to(self.device)
 
             with torch.no_grad():
-                _, imf = self.image_model(image)
-                _, auf = self.audio_model(audio)
+                i_preds, imf = self.image_model(image)
+                a_preds, auf = self.audio_model(audio)
 
                 inputs = torch.cat((imf, auf), dim=1)
 
-                preds = self.fusion_model(inputs).argmax(dim=1)
+                f_preds = self.fusion_model(inputs).argmax(dim=1)
+                i_preds = i_preds.argmax(dim=1)
+                a_preds = a_preds.argmax(dim=1)
 
-                all_preds.append(preds)
+                all_i_preds.append(i_preds)
+                all_a_preds.append(a_preds)
+                all_f_preds.append(f_preds)
                 all_targets.append(labels)
 
             np.save(
@@ -776,9 +782,19 @@ class AttentionAnalysis:
                 audio.detach().squeeze().cpu().numpy()
             )
 
-        all_preds = torch.cat(all_preds, dim=0)
+        all_i_preds = torch.cat(all_i_preds, dim=0)
+        all_a_preds = torch.cat(all_a_preds, dim=0)
+        all_f_preds = torch.cat(all_f_preds, dim=0)
         all_targets = torch.cat(all_targets, dim=0)
 
-        score = self.f1_metric(all_preds, all_targets).item()
+        print("image-only:", self.f1_metric(all_i_preds, all_targets).item())
+        print("audio-only:", self.f1_metric(all_a_preds, all_targets).item())
+
+        score = self.f1_metric(all_f_preds, all_targets).item()
         
-        _save_to_csv(f"attention-analysis-{score}.csv", predictions=all_preds, targets=all_targets)
+        _save_to_csv(f"attention-analysis-{int(score*100)}.csv",
+            targets=all_targets,
+            predictions=all_f_preds,
+            image_predictions=all_i_preds,
+            audio_predictions=all_a_preds,
+        )
