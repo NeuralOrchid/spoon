@@ -714,7 +714,7 @@ class AttentionAnalysis:
 
         self.val_loader = DataLoader(
             dataset=dataset,
-            batch_size=64,
+            batch_size=1,
             shuffle=False,
             num_workers=1,
             pin_memory=True,

@@ -1,0 +1,4 @@
+image_file,audio_file,label,dataset
+3ed.jpg,326.wav,White-breasted Waterhen,Bird-SEA10
+424.jpg,35c.wav,White-throated Kingfisher,Bird-SEA10
+444.jpg,411.wav,Yellow-vented Bulbul,Bird-SEA10
