@@ -320,12 +320,14 @@ class PairedTrainer:
             img_size = (128, 384),
             num_classes = args.num_classes,
             in_channels = 1,
+            is_xxs=args.model_size,
         ).to(self.device)
 
         ## Define Models: Audio Modality Encoder
         self.image_model = MobileViT_XXS(
             img_size = args.image_size,
-            num_classes = args.num_classes
+            num_classes = args.num_classes,
+            is_xxs=args.model_size,
         ).to(self.device)
 
         ## Define Models: Fusion Model 
