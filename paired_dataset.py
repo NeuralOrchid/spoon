@@ -127,7 +127,7 @@ class PairedDataset(Dataset):
 
         self.ann = self.ann.drop(columns="dataset")
 
-        if dst == 'Bird-MY10': # FIXME: Reverse transfer 
+        if dst == 'Bird-SEA10':
             self.transform = torchvision.transforms.Compose([
                 torchvision.transforms.Resize(256),
                 torchvision.transforms.ToTensor(),
@@ -170,18 +170,18 @@ class PairedDataset(Dataset):
         return ImageOps.expand(img, border=(pl, pt, pr, pb))
 
     def _transform_if_necessary(self, signal:torch.Tensor, sr:int) -> torch.Tensor:
-        # Resample if necessary
+        # 必要に応じてリサンプリング
         if sr != 32_000:
             resampler = torchaudio.transforms.Resample(sr, 32_000)
             signal = resampler(signal)
-        # Mix down if necessary
+        # 必要に応じてモノラル化
         if signal.shape[0] > 1:
             signal = torch.mean(signal, dim=0, keepdim=True)
-        # Cut if necessary
+        # 必要に応じて切り出し
         if signal.shape[1] > 196096:
             signal = signal[:, :196096]
         length_signal = signal.shape[1]
-        # Right pad if necessary
+        # 必要に応じて右側をゼロパディング
         if length_signal < 196096:
             num_missing_samples = 196096 - length_signal
             last_dim_padding = (0, num_missing_samples)

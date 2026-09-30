@@ -362,9 +362,9 @@ class PairedTrainer:
             self.optimizer, args.epochs
         )
 
-        ## Define Datasets: Pairing Dataset # FIXME: Reverse transfer 
-        train_dataset   = PairedDataset(dst='Bird-SEA10')
-        val_dataset     = PairedDataset(dst='Bird-MY10')
+        ## Define Datasets: Pairing Dataset
+        train_dataset   = PairedDataset(dst='Bird-MY10')
+        val_dataset     = PairedDataset(dst='Bird-SEA10')
 
         ## Load transform function
         self.transform = AudioTransform()

@@ -64,21 +64,21 @@ class BirdAudioDataset(Dataset):
         return len(self.ann)
 
 
-    def _random_time_shift(self, signal):
+    def _ランダム時間シフト(self, signal):
         if random.random() >= 0.5:
             return signal
         length = signal.shape[-1]
         shift = random.randint(0, length - 1)
         return torch.roll(signal, shifts=shift, dims=-1)
 
-    def _random_gain(self, signal):
+    def _ランダムゲイン(self, signal):
         if random.random() >= 0.3:
             return signal
         gain_db = random.uniform(-6.0, 6.0)
         gain = 10 ** (gain_db / 20.0)
         return signal * gain
 
-    def _random_noise(self, signal):
+    def _ランダムノイズ(self, signal):
         if random.random() >= 0.4:
             return signal
         noise = torch.randn_like(signal)
@@ -94,20 +94,20 @@ class BirdAudioDataset(Dataset):
         return signal + noise
 
     # Spectrogram augmentation
-    def _signal_augment(self, signal):
-        signal = self._random_time_shift(signal)
-        signal = self._random_gain(signal)
-        signal = self._random_noise(signal)
+    def _信号拡張(self, signal):
+        signal = self._ランダム時間シフト(signal)
+        signal = self._ランダムゲイン(signal)
+        signal = self._ランダムノイズ(signal)
         return signal
 
-    def _spec_augment(self, mel):
+    def _スペクトログラム拡張(self, mel):
         if random.random() < 0.2:
             mel = self.freq_mask(mel)
         if random.random() < 0.2:
             mel = self.time_mask(mel)
         return mel
 
-    def _resample_if_necessary(self, signal, sr):
+    def _リサンプリング(self, signal, sr):
         if sr != self.sample_rate:
             resampler = T.Resample(
                 sr, self.sample_rate
@@ -115,17 +115,17 @@ class BirdAudioDataset(Dataset):
             signal = resampler(signal)
         return signal
 
-    def _mix_down_if_necessary(self, signal):
+    def _モノラル化(self, signal):
         if signal.shape[0] > 1:
             signal = torch.mean(signal, dim=0, keepdim=True)
         return signal
 
-    def _cut_if_necessary(self, signal):
+    def _切り出し(self, signal):
         if signal.shape[1] > self.num_samples:
             signal = signal[:, :self.num_samples]
         return signal
 
-    def _right_pad_if_necessary(self, signal):
+    def _右パディング(self, signal):
         length_signal = signal.shape[1]
         if length_signal < self.num_samples:
             num_missing_samples = self.num_samples - length_signal
@@ -135,10 +135,10 @@ class BirdAudioDataset(Dataset):
         
     def transform(self, x: torch.Tensor, train: bool = True) -> torch.Tensor:
         if train:
-            x = self._signal_augment(x)
+            x = self._信号拡張(x)
         x = self.mel(x)
         if train:
-            x = self._spec_augment(x)
+            x = self._スペクトログラム拡張(x)
         x = self.db(x)
 
         return x
@@ -148,10 +148,10 @@ class BirdAudioDataset(Dataset):
         label = int(self.ann.loc[idx, "label"])
 
         signal, sr = torchaudio.load(audio_path)
-        signal = self._resample_if_necessary(signal, sr)
-        signal = self._mix_down_if_necessary(signal)
-        signal = self._cut_if_necessary(signal)
-        signal = self._right_pad_if_necessary(signal)
+        signal = self._リサンプリング(signal, sr)
+        signal = self._モノラル化(signal)
+        signal = self._切り出し(signal)
+        signal = self._右パディング(signal)
 
         return signal, label
     
