@@ -127,7 +127,7 @@ class PairedDataset(Dataset):
 
         self.ann = self.ann.drop(columns="dataset")
 
-        if dst == 'Bird-SEA10':
+        if dst == 'Bird-MY10': # FIXME: Reverse transfer 
             self.transform = torchvision.transforms.Compose([
                 torchvision.transforms.Resize(256),
                 torchvision.transforms.ToTensor(),
