@@ -331,9 +331,10 @@ class PairedTrainer:
         ).to(self.device)
 
         ## Define Models: Fusion Model 
+        n_features = 768 if args.model_size == 'xs' else 640
         self.fusion_model = nn.Sequential(
-            nn.LayerNorm(640),
-            nn.Linear(640, 256),
+            nn.LayerNorm(n_features),
+            nn.Linear(n_features, 256),
             nn.GELU(),
             nn.Dropout(0.2),
 
