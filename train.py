@@ -346,7 +346,8 @@ class PairedTrainer:
         ).to(self.device)
 
         ## Load Model Weights
-        self._load_model_weights()
+        if args.load_checkpoint:
+            self._load_model_weights()
 
         ## Setup F1 Metric, Loss Function, Optimizer, and Scheduler
         self.f1_metric = MulticlassF1Score(args.num_classes).to(self.device)
