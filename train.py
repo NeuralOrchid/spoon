@@ -802,3 +802,193 @@ class AttentionAnalysis:
             image_predictions=all_i_preds,
             audio_predictions=all_a_preds,
         )
+
+
+
+
+class LateFusionTrainer:
+    def __init__(self, args: Namespace):
+
+        ## Load default Parameters
+        self.args = args
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        ## Define Models: Audio Modality Encoder
+        self.audio_model = MobileViT_XXS(
+            img_size = (128, 384),
+            num_classes = args.num_classes,
+            in_channels = 1,
+            is_xxs=args.model_size,
+        ).to(self.device)
+
+        ## Define Models: Image Modality Encoder
+        self.image_model = MobileViT_XXS(
+            img_size = args.image_size,
+            num_classes = args.num_classes,
+            is_xxs=args.model_size,
+        ).to(self.device)
+
+        ## Load Model Weights
+        if args.load_checkpoint:
+            self._load_model_weights()
+
+        ## Setup F1 Metric, Loss Function, Optimizer, and Scheduler
+        self.f1_metric = MulticlassF1Score(args.num_classes).to(self.device)
+        self.criterion = nn.CrossEntropyLoss().to(self.device)
+        self.audio_optimizer = torch.optim.SGD(
+            self.audio_model.parameters(),
+            args.lr,
+            momentum = 0.9,
+            weight_decay = args.weight_decay
+        )
+        self.image_optimizer = torch.optim.SGD(
+            self.image_model.parameters(),
+            args.lr,
+            momentum = 0.9,
+            weight_decay = args.weight_decay
+        )
+        self.audio_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            self.audio_optimizer, args.epochs +1
+        )
+        self.image_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            self.image_optimizer, args.epochs +1
+        )
+
+        ## Define Datasets: Pairing Dataset
+        train_dataset   = PairedDataset(dst='Bird-MY10')
+        val_dataset     = PairedDataset(dst='Bird-SEA10')
+
+        ## Load transform function
+        self.transform = AudioTransform()
+
+        ## Define DataLoader
+        self.train_loader = DataLoader(
+            dataset=train_dataset,
+            batch_size=args.batch_size,
+            shuffle=True,
+            num_workers=1,
+            pin_memory=True,
+        )
+
+        self.val_loader = DataLoader(
+            dataset=val_dataset,
+            batch_size=args.batch_size,
+            shuffle=False,
+            num_workers=1,
+            pin_memory=True,
+        )
+        
+
+    def _save_model_weights(self) -> None:
+        torch.save(
+            self.image_model.state_dict(),
+            self.args.image_mobilevitxxs_checkpoint,
+        )
+        torch.save(
+            self.audio_model.state_dict(),
+            self.args.audio_mobilevitxxs_checkpoint,
+        )
+    
+    def _load_model_weights(self) -> None:
+        if self.args.image_mobilevitxxs_checkpoint.exists():
+            state = torch.load(
+                self.args.image_mobilevitxxs_checkpoint, 
+                map_location=self.device,
+            )
+            self.image_model.load_state_dict(state)
+
+        if self.args.audio_mobilevitxxs_checkpoint.exists():
+            state = torch.load(
+                self.args.audio_mobilevitxxs_checkpoint, 
+                map_location=self.device,
+            )
+            self.audio_model.load_state_dict(state)
+
+    def _train_epoch(self) -> float:
+        self.image_model.train()
+        self.audio_model.train()
+        
+        losses = list()
+
+        for images, audios, labels in self.train_loader:
+            images = images.to(self.device)
+            audios = audios.to(self.device)
+            audios = self.transform(audios)
+            labels = labels.to(self.device)
+
+            image_preds, _ = self.image_model(images)
+            audio_preds, _ = self.audio_model(audios)
+
+            image_loss = self.criterion(image_preds, labels)
+            audio_loss = self.criterion(audio_preds, labels)
+
+            losses.append(image_loss.item())
+            losses.append(audio_loss.item())
+
+            # Backward and optimize
+            self.image_optimizer.zero_grad()
+            image_loss.backward()
+            self.image_optimizer.step()
+
+            self.audio_optimizer.zero_grad()
+            audio_loss.backward()
+            self.audio_optimizer.step()
+
+        self.image_scheduler.step()
+        self.audio_scheduler.step()
+
+        return sum(losses) / len(losses)
+
+
+    def _val_epoch(self) -> float:
+        all_preds = []
+        all_targets = []
+
+        self.image_model.eval()
+        self.audio_model.eval()
+
+        for images, audios, labels in self.val_loader:
+            images = images.to(self.device)
+            audios = audios.to(self.device)
+            audios = self.transform(audios, train=False)
+            labels = labels.to(self.device)
+
+            with torch.no_grad():
+                image_preds, _ = self.image_model(images)
+                audio_preds, _ = self.audio_model(audios)
+
+                image_probs = torch.softmax(image_preds, dim=1)
+                audio_probs = torch.softmax(audio_preds, dim=1)
+
+                preds = (image_preds + audio_preds).argmax(dim=1)
+
+                all_preds.append(preds)
+                all_targets.append(labels)
+
+        # Concatenate all batches
+        all_preds = torch.cat(all_preds, dim=0)
+        all_targets = torch.cat(all_targets, dim=0)
+
+        _save_to_csv(predictions=all_preds, targets=all_targets)
+
+        return self.f1_metric(all_preds, all_targets).item()
+
+
+    def __call__(self):
+        loop = trange(self.args.epochs +1)
+        loop_postfix = {
+            'loss': 0.0,
+            'f1 score': 0.0,
+        }
+
+        for epoch in loop:
+            loss = self._train_epoch()
+            loop_postfix['loss'] = loss
+
+            if epoch % 10 == 0:
+                f1_score = self._val_epoch()
+                loop_postfix['f1 score'] = f1_score
+
+            loop.set_postfix(loop_postfix)
+        # self._save_model_weights() # FIXME: uncomment if necessary
+
