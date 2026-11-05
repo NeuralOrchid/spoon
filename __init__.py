@@ -10,4 +10,5 @@ from .train import (
     PairedTrainer,
     GenuineComplementary,
     AttentionAnalysis,
+    LateFusionTrainer,
 )
