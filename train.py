@@ -813,7 +813,7 @@ class LateFusionTrainer:
         self.args = args
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        ## Define Models: Image Modality Encoder
+        ## Define Models: Audio Modality Encoder
         self.audio_model = MobileViT_XXS(
             img_size = (128, 384),
             num_classes = args.num_classes,
@@ -821,7 +821,7 @@ class LateFusionTrainer:
             is_xxs=args.model_size,
         ).to(self.device)
 
-        ## Define Models: Audio Modality Encoder
+        ## Define Models: Image Modality Encoder
         self.image_model = MobileViT_XXS(
             img_size = args.image_size,
             num_classes = args.num_classes,
@@ -848,10 +848,10 @@ class LateFusionTrainer:
             weight_decay = args.weight_decay
         )
         self.audio_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            self.audio_optimizer, args.epochs
+            self.audio_optimizer, args.epochs +1
         )
         self.image_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            self.image_optimizer, args.epochs
+            self.image_optimizer, args.epochs +1
         )
 
         ## Define Datasets: Pairing Dataset
@@ -957,6 +957,8 @@ class LateFusionTrainer:
                 image_preds, _ = self.image_model(images)
                 audio_preds, _ = self.audio_model(audios)
 
+                image_probs = torch.softmax(image_preds, dim=1)
+                audio_probs = torch.softmax(audio_preds, dim=1)
 
                 preds = (image_preds + audio_preds).argmax(dim=1)
 
