@@ -31,7 +31,6 @@ def _save_to_csv(file:str="out.csv", **tensors: torch.Tensor) -> None:
 
 
 
-
 class ImageTrainer:
     def __init__(self, args: Namespace):
         self.args = args
@@ -57,7 +56,7 @@ class ImageTrainer:
             weight_decay = args.weight_decay
         )
         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            self.optimizer, args.epochs
+            self.optimizer, args.epochs +1
         )
 
         # DataLoaders
@@ -156,6 +155,7 @@ class ImageTrainer:
         self.train()
 
 
+
 class AudioTrainer:
     def __init__(self, args: Namespace):
         self.args = args
@@ -182,7 +182,7 @@ class AudioTrainer:
             weight_decay = args.weight_decay
         )
         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            self.optimizer, args.epochs
+            self.optimizer, args.epochs +1
         )
 
         # DataLoaders
@@ -363,7 +363,7 @@ class PairedTrainer:
             weight_decay = args.weight_decay
         )
         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            self.optimizer, args.epochs
+            self.optimizer, args.epochs +1
         )
 
         ## Define Datasets: Pairing Dataset
@@ -805,7 +805,6 @@ class AttentionAnalysis:
 
 
 
-
 class LateFusionTrainer:
     def __init__(self, args: Namespace):
 
@@ -954,11 +953,11 @@ class LateFusionTrainer:
             labels = labels.to(self.device)
 
             with torch.no_grad():
-                image_preds, _ = self.image_model(images)
-                audio_preds, _ = self.audio_model(audios)
+                image_logit, _ = self.image_model(images)
+                audio_logit, _ = self.audio_model(audios)
 
-                image_probs = torch.softmax(image_preds, dim=1)
-                audio_probs = torch.softmax(audio_preds, dim=1)
+                image_preds = torch.softmax(image_logit, dim=1)
+                audio_preds = torch.softmax(audio_logit, dim=1)
 
                 preds = (image_preds + audio_preds).argmax(dim=1)
 
