@@ -82,6 +82,7 @@ class ImageTrainer:
         state = torch.load(
             self.args.image_mobilevitxxs_checkpoint, 
             map_location=self.device,
+            weights_only=True,
         )
         self.model.load_state_dict(state)
 
@@ -230,6 +231,7 @@ class AudioTrainer:
         state = torch.load(
             self.args.audio_mobilevitxxs_checkpoint, 
             map_location=self.device,
+            weights_only=True,
         )
         self.model.load_state_dict(state)
 
@@ -330,7 +332,7 @@ class PairedTrainer:
             is_xxs=args.model_size,
         ).to(self.device)
 
-        ## Define Models: Fusion Model 
+        ## Define Models: Fusion Model (Only XXS & XS)
         n_features = 768 if args.model_size == 'xs' else 640
         self.fusion_model = nn.Sequential(
             nn.LayerNorm(n_features),
@@ -410,6 +412,7 @@ class PairedTrainer:
             state = torch.load(
                 self.args.image_mobilevitxxs_checkpoint, 
                 map_location=self.device,
+                weights_only=True,
             )
             self.image_model.load_state_dict(state)
 
@@ -417,6 +420,7 @@ class PairedTrainer:
             state = torch.load(
                 self.args.audio_mobilevitxxs_checkpoint, 
                 map_location=self.device,
+                weights_only=True,
             )
             self.audio_model.load_state_dict(state)
 
@@ -424,6 +428,7 @@ class PairedTrainer:
             state = torch.load(
                 self.args.fusion_model_checkpoint, 
                 map_location=self.device,
+                weights_only=True,
             )
             self.fusion_model.load_state_dict(state)
 
@@ -575,6 +580,7 @@ class GenuineComplementary:
             state = torch.load(
                 self.args.image_mobilevitxxs_checkpoint, 
                 map_location=self.device,
+                weights_only=True,
             )
             self.image_model.load_state_dict(state)
 
@@ -582,6 +588,7 @@ class GenuineComplementary:
             state = torch.load(
                 self.args.audio_mobilevitxxs_checkpoint, 
                 map_location=self.device,
+                weights_only=True,
             )
             self.audio_model.load_state_dict(state)
 
@@ -589,6 +596,7 @@ class GenuineComplementary:
             state = torch.load(
                 self.args.fusion_model_checkpoint, 
                 map_location=self.device,
+                weights_only=True,
             )
             self.fusion_model.load_state_dict(state)
 
@@ -729,6 +737,7 @@ class AttentionAnalysis:
             state = torch.load(
                 self.args.image_mobilevitxxs_checkpoint, 
                 map_location=self.device,
+                weights_only=True,
             )
             self.image_model.load_state_dict(state)
 
@@ -736,6 +745,7 @@ class AttentionAnalysis:
             state = torch.load(
                 self.args.audio_mobilevitxxs_checkpoint, 
                 map_location=self.device,
+                weights_only=True,
             )
             self.audio_model.load_state_dict(state)
 
@@ -743,6 +753,7 @@ class AttentionAnalysis:
             state = torch.load(
                 self.args.fusion_model_checkpoint, 
                 map_location=self.device,
+                weights_only=True,
             )
             self.fusion_model.load_state_dict(state)
 
@@ -893,6 +904,7 @@ class LateFusionTrainer:
             state = torch.load(
                 self.args.image_mobilevitxxs_checkpoint, 
                 map_location=self.device,
+                weights_only=True,
             )
             self.image_model.load_state_dict(state)
 
@@ -900,6 +912,7 @@ class LateFusionTrainer:
             state = torch.load(
                 self.args.audio_mobilevitxxs_checkpoint, 
                 map_location=self.device,
+                weights_only=True,
             )
             self.audio_model.load_state_dict(state)
 

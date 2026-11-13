@@ -12,7 +12,7 @@ class BirdImageDataset(Dataset):
         self,
         img_dir: Path,
         ann_file: str | Path,
-        train: bool = None,
+        train: bool = False,
         dst: Optional[Literal['Bird-MY10', 'Bird-SEA10']] = None,
     ):
         self.train = train
