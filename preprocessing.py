@@ -147,6 +147,7 @@ class ImagePreprocessing:
 
             image_path = self.root / 'image' / f'{hex(self.count)[2:]}.jpg'
             self.count += 1
+            img: Image.Image = img.convert("RGB")
             img.save(image_path)
 
             return image_path

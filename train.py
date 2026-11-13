@@ -332,7 +332,7 @@ class PairedTrainer:
             is_xxs=args.model_size,
         ).to(self.device)
 
-        ## Define Models: Fusion Model 
+        ## Define Models: Fusion Model (Only XXS & XS)
         n_features = 768 if args.model_size == 'xs' else 640
         self.fusion_model = nn.Sequential(
             nn.LayerNorm(n_features),
